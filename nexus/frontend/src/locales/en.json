@@ -82,7 +82,8 @@
     "qrExpires": "QR code expires in 60 seconds",
     "sessionActive": "Session is active",
     "initializingSession": "Initializing session...",
-    "sessionLimitReached": "You already have an active session. Disconnect it before creating a new one."
+    "sessionLimitReached": "You already have an active session. Disconnect it before creating a new one.",
+    "tapToConnect": "Click the button below to connect your WhatsApp account."
   },
   "contacts": {
     "title": "Contacts",
@@ -178,7 +179,16 @@
     "passwordMismatch": "Passwords do not match",
     "deleteAccount": "Delete Account",
     "deleteAccountWarning": "This action is irreversible. All your data will be permanently deleted.",
-    "confirmDelete": "Type your email to confirm deletion"
+    "confirmDelete": "Type your email to confirm deletion",
+    "farewell": {
+      "title": "Thanks for being with us",
+      "body": "Your account has been deleted. We're sorry to see you go — it was a pleasure having you on board.",
+      "perk1": "Bulk WhatsApp messaging to hundreds of contacts at once",
+      "perk2": "Smart grammar checker in English, Turkish, and Arabic",
+      "perk3": "Scheduled status posts on any recurring interval",
+      "perk4": "Real-time campaign progress with anti-spam protection",
+      "cta": "Close"
+    }
   },
   "errors": {
     "network": "Network error. Please check your connection.",

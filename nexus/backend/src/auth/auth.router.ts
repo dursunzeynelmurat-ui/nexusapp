@@ -1,7 +1,8 @@
 import { Router } from 'express'
-import { register, login, refreshTokens, logout } from './auth.service'
+import { register, login, refreshTokens, logout, deleteAccount } from './auth.service'
 import { registerSchema, loginSchema, refreshSchema } from './auth.schema'
 import { validate } from '../middleware/validate'
+import { requireAuth, type AuthRequest } from './auth.middleware'
 
 export const authRouter = Router()
 
@@ -36,6 +37,15 @@ authRouter.post('/logout', async (req, res, next) => {
   try {
     const token = req.body.refreshToken as string | undefined
     if (token) await logout(token)
+    res.status(204).send()
+  } catch (err) {
+    next(err)
+  }
+})
+
+authRouter.delete('/account', requireAuth, async (req: AuthRequest, res, next) => {
+  try {
+    await deleteAccount(req.user!.id)
     res.status(204).send()
   } catch (err) {
     next(err)

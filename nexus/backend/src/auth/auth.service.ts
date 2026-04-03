@@ -128,3 +128,38 @@ export async function getUserById(id: string): Promise<AuthUser | null> {
   if (!user) return null
   return { id: user.id, email: user.email, name: user.name, role: user.role }
 }
+
+export async function deleteAccount(id: string): Promise<void> {
+  // Cascade: delete refresh tokens, whatsapp sessions, contacts, lists, campaigns, status posts
+  await prisma.refreshToken.deleteMany({ where: { userId: id } })
+  await prisma.whatsAppSession.deleteMany({ where: { userId: id } })
+
+  // Campaign contacts via campaigns
+  const campaigns = await prisma.campaign.findMany({ where: { userId: id }, select: { id: true } })
+  const campaignIds = campaigns.map((c) => c.id)
+  if (campaignIds.length) {
+    await prisma.campaignContact.deleteMany({ where: { campaignId: { in: campaignIds } } })
+  }
+  await prisma.campaign.deleteMany({ where: { userId: id } })
+
+  // List contacts via lists
+  const lists = await prisma.list.findMany({ where: { userId: id }, select: { id: true } })
+  const listIds = lists.map((l) => l.id)
+  if (listIds.length) {
+    await prisma.listContact.deleteMany({ where: { listId: { in: listIds } } })
+  }
+  await prisma.list.deleteMany({ where: { userId: id } })
+
+  await prisma.contact.deleteMany({ where: { userId: id } })
+
+  // Status schedules via status posts
+  const posts = await prisma.statusPost.findMany({ where: { userId: id }, select: { id: true } })
+  const postIds = posts.map((p) => p.id)
+  if (postIds.length) {
+    await prisma.statusSchedule.deleteMany({ where: { statusPostId: { in: postIds } } })
+  }
+  await prisma.statusPost.deleteMany({ where: { userId: id } })
+
+  await prisma.user.delete({ where: { id } })
+  logger.info('Account deleted', { userId: id })
+}

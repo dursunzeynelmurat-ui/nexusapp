@@ -82,7 +82,8 @@
     "qrExpires": "QR kodu 60 saniye içinde geçersiz olur",
     "sessionActive": "Oturum aktif",
     "initializingSession": "Oturum başlatılıyor...",
-    "sessionLimitReached": "Zaten aktif bir oturumunuz var. Yeni oturum oluşturmadan önce mevcut oturumu kesin."
+    "sessionLimitReached": "Zaten aktif bir oturumunuz var. Yeni oturum oluşturmadan önce mevcut oturumu kesin.",
+    "tapToConnect": "WhatsApp hesabınızı bağlamak için aşağıdaki butona tıklayın."
   },
   "contacts": {
     "title": "Kişiler",
@@ -178,7 +179,16 @@
     "passwordMismatch": "Şifreler eşleşmiyor",
     "deleteAccount": "Hesabı Sil",
     "deleteAccountWarning": "Bu işlem geri alınamaz. Tüm verileriniz kalıcı olarak silinecek.",
-    "confirmDelete": "Silmeyi onaylamak için e-postanızı yazın"
+    "confirmDelete": "Silmeyi onaylamak için e-postanızı yazın",
+    "farewell": {
+      "title": "Bizimle olduğunuz için teşekkürler",
+      "body": "Hesabınız silindi. Aramızdan ayrıldığınıza üzüldük — yanımızda olduğunuz için mutluyuk.",
+      "perk1": "Yüzlerce kişiye aynı anda toplu WhatsApp mesajı",
+      "perk2": "İngilizce, Türkçe ve Arapça akıllı dilbilgisi denetleyicisi",
+      "perk3": "Her yineleme aralığında zamanlanmış durum gönderileri",
+      "perk4": "Spam korumalı gerçek zamanlı kampanya takibi",
+      "cta": "Kapat"
+    }
   },
   "errors": {
     "network": "Ağ hatası. Bağlantınızı kontrol edin.",

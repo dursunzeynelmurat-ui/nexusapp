@@ -44,29 +44,16 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex h-16 items-center justify-between px-4 border-b border-border">
         <AnimatePresence mode="wait">
-          {collapsed ? (
-            <motion.img
-              key="logo-icon"
-              src="/logo.svg"
-              alt="NEXUS"
+          {!collapsed && (
+            <motion.span
+              key="logo-text"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="h-8 w-8 shrink-0"
-            />
-          ) : (
-            <motion.div
-              key="logo-full"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex items-center gap-2"
+              className="text-xl font-bold text-accent font-display tracking-wide"
             >
-              <img src="/logo.svg" alt="NEXUS" className="h-8 w-8 shrink-0" />
-              <span className="text-xl font-bold text-accent font-display tracking-wide">
-                NEXUS
-              </span>
-            </motion.div>
+              NEXUS
+            </motion.span>
           )}
         </AnimatePresence>
         <button
