@@ -1,7 +1,7 @@
 # ── Stage 1: Builder ─────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl git python3 make g++
 
 WORKDIR /app
 

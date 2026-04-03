@@ -25,7 +25,8 @@ async function getEnglishSpell() {
   if (_englishSpell) return _englishSpell
   try {
     const dictModule = await import('dictionary-en')
-    const load: (cb: (err: Error | null, dict: { aff: Buffer; dic: Buffer }) => void) => void =
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const load: (cb: (err: any, dict: { aff: Buffer; dic: Buffer }) => void) => void =
       dictModule.default ?? dictModule
     await new Promise<void>((resolve, reject) => {
       load((err, dict) => {
