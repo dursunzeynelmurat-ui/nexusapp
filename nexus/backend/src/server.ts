@@ -4,7 +4,7 @@ import { env } from './utils/env'
 import { logger } from './utils/logger'
 import { prisma } from './prisma/client'
 import { createSocketServer } from './socket/socket.server'
-import { setSocketServer } from './whatsapp/whatsapp.service'
+import { setSocketServer, restoreActiveSessions } from './whatsapp/whatsapp.service'
 import { campaignQueue } from './campaigns/campaign.queue'
 import { statusQueue } from './status/status.queue'
 
@@ -19,6 +19,9 @@ async function bootstrap(): Promise<void> {
   // Initialize Socket.IO
   const io = createSocketServer(httpServer)
   setSocketServer(io)
+
+  // Restore any sessions that were active before last shutdown
+  await restoreActiveSessions()
 
   // Ensure Bull queues are listening (processors registered on import)
   logger.info('Campaign queue ready', { name: campaignQueue.name })

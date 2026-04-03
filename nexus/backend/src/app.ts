@@ -16,6 +16,9 @@ import { mediaRouter }     from './media/media.router'
 
 const app = express()
 
+// Trust nginx reverse proxy
+app.set('trust proxy', 1)
+
 // ── Security ───────────────────────────────────────────────────────────────
 app.use(helmet())
 app.use(cors({

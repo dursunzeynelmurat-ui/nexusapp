@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { QRCodeSVG } from 'qrcode.react'
@@ -23,6 +23,33 @@ export default function ConnectPage() {
   const disconnectMutation = useDisconnectSession()
   const syncMutation       = useSyncContacts()
 
+  // Guard: prevent multiple concurrent init calls
+  const initInFlight = useRef(false)
+
+  // QR expiry countdown (WhatsApp QR expires in ~20s)
+  const [qrSecondsLeft, setQrSecondsLeft] = useState<number>(0)
+  const qrTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    if (activeQR) {
+      setQrSecondsLeft(20)
+      if (qrTimerRef.current) clearInterval(qrTimerRef.current)
+      qrTimerRef.current = setInterval(() => {
+        setQrSecondsLeft((s) => {
+          if (s <= 1) {
+            clearInterval(qrTimerRef.current!)
+            return 0
+          }
+          return s - 1
+        })
+      }, 1000)
+    } else {
+      if (qrTimerRef.current) clearInterval(qrTimerRef.current)
+      setQrSecondsLeft(0)
+    }
+    return () => { if (qrTimerRef.current) clearInterval(qrTimerRef.current) }
+  }, [activeQR])
+
   // Derive session name from username (slugified)
   const sessionName = user?.name
     ? user.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
@@ -34,30 +61,36 @@ export default function ConnectPage() {
   )
 
   const handleReconnect = useCallback(() => {
+    if (initInFlight.current) return
+    initInFlight.current = true
+
     // Clear stale QR before re-init
     useWhatsAppStore.getState().setQR(null)
 
     const socket = getWhatsAppSocket()
     socket.auth = { token: localStorage.getItem('accessToken') }
 
-    const doInit = () => initMutation.mutate(sessionName)
+    const doInit = () => {
+      initMutation.mutate(sessionName, {
+        onSettled: () => { initInFlight.current = false },
+      })
+    }
 
     if (socket.connected) {
       doInit()
     } else {
-      // Wait for socket to connect before firing init so QR event is not missed
       socket.once('connect', doInit)
       socket.connect()
     }
   }, [initMutation, sessionName])
 
-  // Auto-init when there is no active session
+  // Auto-init once when there is no active session
   useEffect(() => {
     if (isLoading) return
     const hasActive = sessions?.some((s: { status: string }) =>
       ['CONNECTED', 'QR_READY', 'CONNECTING'].includes(s.status)
     )
-    if (!hasActive && !initMutation.isPending && !activeQR) {
+    if (!hasActive && !initInFlight.current && !activeQR) {
       handleReconnect()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -109,10 +142,22 @@ export default function ConnectPage() {
               className="rounded-2xl border border-accent/30 bg-accent/5 p-6 flex flex-col items-center gap-4"
             >
               <p className="font-medium text-accent">{t('connect.scanQR')}</p>
-              <div className="rounded-2xl bg-white p-4 shadow-lg">
+              <div className={`rounded-2xl bg-white p-4 shadow-lg relative ${qrSecondsLeft === 0 ? 'opacity-30' : ''}`}>
                 <QRCodeSVG value={activeQR.qr} size={220} />
               </div>
-              <p className="text-xs text-text-muted">{t('connect.qrExpires')}</p>
+              {qrSecondsLeft > 0 ? (
+                <p className="text-xs text-text-muted">
+                  {t('connect.qrExpires')} — {qrSecondsLeft}s
+                </p>
+              ) : (
+                <button
+                  onClick={handleReconnect}
+                  className="flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover transition-colors"
+                >
+                  <RefreshCw size={14} />
+                  {t('connect.reconnect')}
+                </button>
+              )}
             </motion.div>
           )}
 
@@ -125,6 +170,7 @@ export default function ConnectPage() {
             >
               <Loader2 size={28} className="animate-spin text-accent" />
               <p className="text-sm text-text-muted">{t('connect.connecting')}</p>
+              <p className="text-xs text-text-muted opacity-60">{t('connect.connectingHint')}</p>
             </motion.div>
           )}
 

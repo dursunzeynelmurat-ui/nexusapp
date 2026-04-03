@@ -24,8 +24,16 @@ let _englishSpell: ReturnType<typeof nspell> | null = null
 async function getEnglishSpell() {
   if (_englishSpell) return _englishSpell
   try {
-    const dict = await import('dictionary-en')
-    _englishSpell = nspell(dict.default ?? dict)
+    const dictModule = await import('dictionary-en')
+    const load: (cb: (err: Error | null, dict: { aff: Buffer; dic: Buffer }) => void) => void =
+      dictModule.default ?? dictModule
+    await new Promise<void>((resolve, reject) => {
+      load((err, dict) => {
+        if (err) { reject(err); return }
+        _englishSpell = nspell(dict)
+        resolve()
+      })
+    })
   } catch {
     logger.warn('Could not load English dictionary, falling back to empty spell checker')
     _englishSpell = nspell({ aff: 'SET UTF-8\n', dic: '0\n' })
