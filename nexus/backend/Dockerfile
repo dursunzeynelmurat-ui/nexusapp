@@ -1,10 +1,12 @@
 # ── Stage 1: Builder ─────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 
+RUN apk add --no-cache openssl
+
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN npm install
 
 COPY tsconfig.json ./
 COPY prisma ./prisma
@@ -16,17 +18,8 @@ RUN npm run build
 # ── Stage 2: Runner ───────────────────────────────────────────────────────────
 FROM node:20-alpine AS runner
 
-# Chromium for whatsapp-web.js puppeteer
-RUN apk add --no-cache \
-      chromium \
-      nss \
-      freetype \
-      harfbuzz \
-      ca-certificates \
-      ttf-freefont
+RUN apk add --no-cache openssl ca-certificates
 
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV NODE_ENV=production
 
 WORKDIR /app
