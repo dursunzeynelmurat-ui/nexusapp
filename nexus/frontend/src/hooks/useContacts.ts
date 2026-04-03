@@ -5,7 +5,12 @@ export function useContacts(params?: { search?: string; isGroup?: boolean; page?
   return useQuery({
     queryKey: ['contacts', params],
     queryFn:  async () => {
-      const res = await api.get('/contacts', { params })
+      const p: Record<string, unknown> = {}
+      if (params?.search   !== undefined) p.search  = params.search
+      if (params?.isGroup  !== undefined) p.isGroup = params.isGroup
+      if (params?.page     !== undefined) p.page    = params.page
+      if (params?.limit    !== undefined) p.limit   = params.limit
+      const res = await api.get('/contacts', { params: p })
       return res.data as { contacts: { id: string; phone: string; name: string; isGroup: boolean }[]; total: number; page: number; limit: number }
     },
   })

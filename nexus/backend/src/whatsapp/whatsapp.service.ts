@@ -193,9 +193,10 @@ export async function syncContacts(sessionId: string, userId: string): Promise<n
     throw new Error(`Session ${sessionId} is not connected`)
   }
 
-  const contacts = await managed.client.getContacts()
   let count = 0
 
+  // Sync individual contacts
+  const contacts = await managed.client.getContacts()
   for (const c of contacts) {
     if (!c.number || c.isMe) continue
     const phone = c.number
@@ -203,13 +204,28 @@ export async function syncContacts(sessionId: string, userId: string): Promise<n
 
     await prisma.contact.upsert({
       where:  { userId_phone: { userId, phone } },
-      update: { name, isGroup: c.isGroup ?? false },
-      create: { userId, phone, name, isGroup: c.isGroup ?? false },
+      update: { name, isGroup: false },
+      create: { userId, phone, name, isGroup: false },
     })
     count++
   }
 
-  logger.info(`Synced ${count} contacts`, { sessionId, userId })
+  // Sync groups separately via getChats()
+  const chats = await managed.client.getChats()
+  for (const chat of chats) {
+    if (!chat.isGroup) continue
+    const phone = chat.id._serialized
+    const name  = chat.name || phone
+
+    await prisma.contact.upsert({
+      where:  { userId_phone: { userId, phone } },
+      update: { name, isGroup: true },
+      create: { userId, phone, name, isGroup: true },
+    })
+    count++
+  }
+
+  logger.info(`Synced ${count} contacts+groups`, { sessionId, userId })
   return count
 }
 
