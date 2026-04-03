@@ -29,24 +29,33 @@ export function useWhatsAppSocket() {
   useEffect(() => {
     const socket = getWhatsAppSocket()
 
-    // Ensure token is fresh before connecting
-    socket.auth = { token: localStorage.getItem('accessToken') }
-    if (!socket.connected) socket.connect()
-
-    socket.on('qr',          (data: { sessionId: string; qr: string }) => setQR(data))
-    socket.on('ready',       (data: { sessionId: string; phoneNumber: string; displayName: string }) => {
+    const onQR          = (data: { sessionId: string; qr: string }) => setQR(data)
+    const onReady       = (data: { sessionId: string; phoneNumber: string; displayName: string }) => {
       markConnected(data.sessionId, data.phoneNumber, data.displayName)
       qc.invalidateQueries({ queryKey: ['whatsapp', 'sessions'] })
-    })
-    socket.on('disconnected', (data: { sessionId: string }) => {
+    }
+    const onDisconnected = (data: { sessionId: string }) => {
       markDisconnected(data.sessionId)
       qc.invalidateQueries({ queryKey: ['whatsapp', 'sessions'] })
-    })
+    }
+
+    // Attach listeners before connecting so no events are missed
+    socket.on('qr',          onQR)
+    socket.on('ready',       onReady)
+    socket.on('disconnected', onDisconnected)
+
+    // Always refresh token and reconnect
+    socket.auth = { token: localStorage.getItem('accessToken') }
+    if (!socket.connected) {
+      socket.connect()
+    }
+
+    // If already connected, re-register is sufficient (listeners already attached above)
 
     return () => {
-      socket.off('qr')
-      socket.off('ready')
-      socket.off('disconnected')
+      socket.off('qr',          onQR)
+      socket.off('ready',       onReady)
+      socket.off('disconnected', onDisconnected)
     }
   }, [setQR, markConnected, markDisconnected, qc])
 }

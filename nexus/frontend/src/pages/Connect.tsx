@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { QRCodeSVG } from 'qrcode.react'
@@ -6,6 +6,7 @@ import { Wifi, WifiOff, RefreshCw, Loader2 } from 'lucide-react'
 import { useSessions, useWhatsAppSocket, useInitSession, useDisconnectSession, useSyncContacts } from '../hooks/useWhatsApp'
 import { useWhatsAppStore } from '../stores/whatsappStore'
 import { useAuthStore } from '../stores/authStore'
+import { getWhatsAppSocket } from '../utils/socketClient'
 import { StatusBadge } from '../components/StatusBadge'
 import { toast } from '../components/Toast'
 
@@ -32,11 +33,32 @@ export default function ConnectPage() {
     (s: { status: string }) => ['CONNECTED', 'QR_READY', 'CONNECTING'].includes(s.status)
   )
 
-  // Auto-init when there is no session at all
+  const handleReconnect = useCallback(() => {
+    // Clear stale QR before re-init
+    useWhatsAppStore.getState().setQR(null)
+
+    const socket = getWhatsAppSocket()
+    socket.auth = { token: localStorage.getItem('accessToken') }
+
+    const doInit = () => initMutation.mutate(sessionName)
+
+    if (socket.connected) {
+      doInit()
+    } else {
+      // Wait for socket to connect before firing init so QR event is not missed
+      socket.once('connect', doInit)
+      socket.connect()
+    }
+  }, [initMutation, sessionName])
+
+  // Auto-init when there is no active session
   useEffect(() => {
     if (isLoading) return
-    if (sessions && sessions.length === 0 && !initMutation.isPending) {
-      initMutation.mutate(sessionName)
+    const hasActive = sessions?.some((s: { status: string }) =>
+      ['CONNECTED', 'QR_READY', 'CONNECTING'].includes(s.status)
+    )
+    if (!hasActive && !initMutation.isPending && !activeQR) {
+      handleReconnect()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, sessions])
@@ -57,10 +79,6 @@ export default function ConnectPage() {
     } catch {
       toast.error(t('errors.sessionNotConnected'))
     }
-  }
-
-  const handleReconnect = () => {
-    initMutation.mutate(sessionName)
   }
 
   const statusLabel: Record<string, string> = {
@@ -99,7 +117,7 @@ export default function ConnectPage() {
           )}
 
           {/* Initialising — no QR yet */}
-          {!activeQR && activeSession?.status === 'CONNECTING' && (
+          {!activeQR && (activeSession?.status === 'CONNECTING' || initMutation.isPending) && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
