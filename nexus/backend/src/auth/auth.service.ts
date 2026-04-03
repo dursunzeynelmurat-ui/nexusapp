@@ -156,7 +156,7 @@ export async function deleteAccount(id: string): Promise<void> {
   const posts = await prisma.statusPost.findMany({ where: { userId: id }, select: { id: true } })
   const postIds = posts.map((p) => p.id)
   if (postIds.length) {
-    await prisma.statusSchedule.deleteMany({ where: { statusPostId: { in: postIds } } })
+    await prisma.statusSchedule.deleteMany({ where: { postId: { in: postIds } } })
   }
   await prisma.statusPost.deleteMany({ where: { userId: id } })
 

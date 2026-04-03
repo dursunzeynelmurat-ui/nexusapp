@@ -21,7 +21,12 @@ mediaRouter.post('/upload', upload.single('file'), async (req: AuthRequest, res,
 
 mediaRouter.delete('/:key(*)', async (req: AuthRequest, res, next) => {
   try {
-    await deleteFile(req.params.key)
+    const key = req.params.key
+    if (!key || /\.\./.test(key) || key.startsWith('/')) {
+      res.status(400).json({ error: 'Invalid file key' })
+      return
+    }
+    await deleteFile(key)
     res.status(204).send()
   } catch (err) {
     next(err)

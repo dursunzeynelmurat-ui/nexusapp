@@ -61,7 +61,14 @@ whatsappRouter.get('/sessions', async (req: AuthRequest, res, next) => {
 
 whatsappRouter.post('/disconnect', validate(disconnectSchema), async (req: AuthRequest, res, next) => {
   try {
+    const userId = req.user!.id
     const { sessionId } = req.body
+    const { prisma } = await import('../prisma/client')
+    const session = await prisma.whatsAppSession.findFirst({ where: { sessionId, userId } })
+    if (!session) {
+      res.status(404).json({ error: 'Session not found' })
+      return
+    }
     await disconnectSession(sessionId)
     res.status(204).send()
   } catch (err) {
@@ -71,9 +78,13 @@ whatsappRouter.post('/disconnect', validate(disconnectSchema), async (req: AuthR
 
 whatsappRouter.post('/sync-contacts', async (req: AuthRequest, res, next) => {
   try {
+    const userId = req.user!.id
     const { sessionId } = req.body as { sessionId: string }
     if (!sessionId) { res.status(400).json({ error: 'sessionId required' }); return }
-    const count = await syncContacts(sessionId, req.user!.id)
+    const { prisma } = await import('../prisma/client')
+    const session = await prisma.whatsAppSession.findFirst({ where: { sessionId, userId } })
+    if (!session) { res.status(404).json({ error: 'Session not found' }); return }
+    const count = await syncContacts(sessionId, userId)
     res.json({ synced: count })
   } catch (err) {
     next(err)
@@ -82,8 +93,12 @@ whatsappRouter.post('/sync-contacts', async (req: AuthRequest, res, next) => {
 
 whatsappRouter.get('/groups', async (req: AuthRequest, res, next) => {
   try {
+    const userId = req.user!.id
     const { sessionId } = req.query as { sessionId?: string }
     if (!sessionId) { res.status(400).json({ error: 'sessionId required' }); return }
+    const { prisma } = await import('../prisma/client')
+    const session = await prisma.whatsAppSession.findFirst({ where: { sessionId, userId } })
+    if (!session) { res.status(404).json({ error: 'Session not found' }); return }
     const groups = await getGroups(sessionId)
     res.json(groups)
   } catch (err) {
