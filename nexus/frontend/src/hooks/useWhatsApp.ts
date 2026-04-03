@@ -28,7 +28,10 @@ export function useWhatsAppSocket() {
 
   useEffect(() => {
     const socket = getWhatsAppSocket()
-    socket.connect()
+
+    // Ensure token is fresh before connecting
+    socket.auth = { token: localStorage.getItem('accessToken') }
+    if (!socket.connected) socket.connect()
 
     socket.on('qr',          (data: { sessionId: string; qr: string }) => setQR(data))
     socket.on('ready',       (data: { sessionId: string; phoneNumber: string; displayName: string }) => {

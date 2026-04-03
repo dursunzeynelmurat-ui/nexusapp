@@ -31,8 +31,13 @@ export default function ConnectPage() {
       setShowForm(false)
       setNewSessionId('')
       toast.info(t('connect.initializingSession'))
-    } catch {
-      toast.error(t('errors.serverError'))
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status
+      if (status === 409) {
+        toast.error(t('connect.sessionLimitReached'))
+      } else {
+        toast.error(t('errors.serverError'))
+      }
     }
   }
 

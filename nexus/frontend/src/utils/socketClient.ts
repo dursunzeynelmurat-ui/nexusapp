@@ -4,11 +4,16 @@ const SOCKET_URL = window.location.origin
 
 function createNamespaceSocket(namespace: string): Socket {
   const token = localStorage.getItem('accessToken')
-  return io(`${SOCKET_URL}${namespace}`, {
-    auth:       { token },
-    transports: ['websocket', 'polling'],
+  const socket = io(`${SOCKET_URL}${namespace}`, {
+    auth:        { token },
+    transports:  ['websocket', 'polling'],
     autoConnect: false,
   })
+  // Re-attach fresh token on every reconnect attempt
+  socket.on('connect_error', () => {
+    socket.auth = { token: localStorage.getItem('accessToken') }
+  })
+  return socket
 }
 
 let whatsappSocket: Socket | null = null

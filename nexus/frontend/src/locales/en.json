@@ -81,7 +81,8 @@
     "addSession": "Add your first session",
     "qrExpires": "QR code expires in 60 seconds",
     "sessionActive": "Session is active",
-    "initializingSession": "Initializing session..."
+    "initializingSession": "Initializing session...",
+    "sessionLimitReached": "You already have an active session. Disconnect it before creating a new one."
   },
   "contacts": {
     "title": "Contacts",
@@ -188,6 +189,36 @@
     "validationFailed": "Please check the form for errors.",
     "sessionNotConnected": "WhatsApp session is not connected.",
     "maxCampaignContacts": "Campaign limit is 200 contacts."
+  },
+  "tutorial": {
+    "reopenTitle": "How it works",
+    "next":        "Next",
+    "finish":      "Get started",
+    "skip":        "Skip tutorial",
+    "step0": {
+      "title": "Welcome to NEXUS",
+      "body":  "NEXUS is a powerful WhatsApp bulk messaging platform. This quick tour will show you the key features so you can hit the ground running."
+    },
+    "step1": {
+      "title": "Connect WhatsApp",
+      "body":  "Go to Connect and scan a QR code with your WhatsApp app to link your account. Each user can have one active session at a time."
+    },
+    "step2": {
+      "title": "Manage Contacts",
+      "body":  "Import contacts by syncing directly from WhatsApp, uploading a CSV, or adding them manually. Keep everything organised in one place."
+    },
+    "step3": {
+      "title": "Build Lists",
+      "body":  "Group your contacts into Lists for targeted messaging. A campaign always targets a list — so organise contacts before you send."
+    },
+    "step4": {
+      "title": "Run Campaigns",
+      "body":  "Create a campaign, pick a list and a WhatsApp session, write your message (or attach media), then start. Messages are sent with random delays to stay safe."
+    },
+    "step5": {
+      "title": "Schedule Statuses",
+      "body":  "Post WhatsApp statuses instantly or on a recurring schedule — daily, weekly, or at a custom interval. Set it once and forget it."
+    }
   },
   "grammar": {
     "checkGrammar": "Check Grammar",

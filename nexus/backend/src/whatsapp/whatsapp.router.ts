@@ -23,8 +23,27 @@ const disconnectSchema = z.object({
 
 whatsappRouter.post('/init', validate(initSchema), async (req: AuthRequest, res, next) => {
   try {
+    const userId = req.user!.id
     const { sessionId } = req.body
-    await initSession(req.user!.id, sessionId)
+
+    // Enforce 1-session-per-user limit
+    const existing = await import('../prisma/client').then(({ prisma }) =>
+      prisma.whatsAppSession.findFirst({
+        where: {
+          userId,
+          status: { in: ['CONNECTING', 'CONNECTED', 'QR_READY'] },
+        },
+      })
+    )
+    if (existing) {
+      res.status(409).json({
+        error: 'SESSION_LIMIT_REACHED',
+        message: 'You already have an active session. Disconnect it before creating a new one.',
+      })
+      return
+    }
+
+    await initSession(userId, sessionId)
     res.status(202).json({ message: 'Session initialization started', sessionId })
   } catch (err) {
     next(err)

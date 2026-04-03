@@ -4,11 +4,12 @@ import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, Wifi, Users, List, Megaphone,
-  Activity, Settings, LogOut, ChevronLeft, ChevronRight, Menu,
+  Activity, Settings, LogOut, ChevronLeft, ChevronRight, HelpCircle,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { useAuthStore } from '../stores/authStore'
+import { useTutorialStore } from '../stores/tutorialStore'
 import { useLogout } from '../hooks/useAuth'
 
 const navItems = [
@@ -24,9 +25,10 @@ const navItems = [
 export function Sidebar() {
   const { t } = useTranslation()
   const [collapsed, setCollapsed] = useState(false)
-  const user    = useAuthStore((s) => s.user)
-  const logout  = useLogout()
-  const navigate = useNavigate()
+  const user           = useAuthStore((s) => s.user)
+  const openTutorial   = useTutorialStore((s) => s.open)
+  const logout         = useLogout()
+  const navigate       = useNavigate()
 
   const handleLogout = async () => {
     await logout.mutateAsync()
@@ -42,16 +44,29 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex h-16 items-center justify-between px-4 border-b border-border">
         <AnimatePresence mode="wait">
-          {!collapsed && (
-            <motion.span
-              key="logo-text"
+          {collapsed ? (
+            <motion.img
+              key="logo-icon"
+              src="/logo.svg"
+              alt="NEXUS"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="text-xl font-bold text-accent font-display tracking-wide"
+              className="h-8 w-8 shrink-0"
+            />
+          ) : (
+            <motion.div
+              key="logo-full"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex items-center gap-2"
             >
-              NEXUS
-            </motion.span>
+              <img src="/logo.svg" alt="NEXUS" className="h-8 w-8 shrink-0" />
+              <span className="text-xl font-bold text-accent font-display tracking-wide">
+                NEXUS
+              </span>
+            </motion.div>
           )}
         </AnimatePresence>
         <button
@@ -125,6 +140,29 @@ export function Sidebar() {
             )}
           </AnimatePresence>
         </div>
+
+        <button
+          onClick={openTutorial}
+          title={collapsed ? t('tutorial.reopenTitle') : undefined}
+          className={clsx(
+            'flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-text-muted transition-colors',
+            'hover:bg-accent/10 hover:text-accent',
+            collapsed && 'justify-center px-2'
+          )}
+        >
+          <HelpCircle size={16} />
+          <AnimatePresence>
+            {!collapsed && (
+              <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                {t('tutorial.reopenTitle')}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </button>
 
         <button
           onClick={handleLogout}

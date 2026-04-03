@@ -81,7 +81,8 @@
     "addSession": "İlk oturumunuzu ekleyin",
     "qrExpires": "QR kodu 60 saniye içinde geçersiz olur",
     "sessionActive": "Oturum aktif",
-    "initializingSession": "Oturum başlatılıyor..."
+    "initializingSession": "Oturum başlatılıyor...",
+    "sessionLimitReached": "Zaten aktif bir oturumunuz var. Yeni oturum oluşturmadan önce mevcut oturumu kesin."
   },
   "contacts": {
     "title": "Kişiler",
@@ -188,6 +189,36 @@
     "validationFailed": "Lütfen formdaki hataları kontrol edin.",
     "sessionNotConnected": "WhatsApp oturumu bağlı değil.",
     "maxCampaignContacts": "Kampanya limiti 200 kişidir."
+  },
+  "tutorial": {
+    "reopenTitle": "Nasıl çalışır?",
+    "next":        "İleri",
+    "finish":      "Başlayalım",
+    "skip":        "Turu atla",
+    "step0": {
+      "title": "NEXUS'a Hoş Geldiniz",
+      "body":  "NEXUS, güçlü bir WhatsApp toplu mesaj platformudur. Bu kısa tur size temel özellikleri gösterecek ve hızlıca başlamanızı sağlayacak."
+    },
+    "step1": {
+      "title": "WhatsApp Bağlantısı",
+      "body":  "Bağlan sayfasına gidin ve hesabınızı bağlamak için WhatsApp uygulamanızla QR kodu okutun. Her kullanıcının aynı anda bir aktif oturumu olabilir."
+    },
+    "step2": {
+      "title": "Kişileri Yönetin",
+      "body":  "WhatsApp'tan senkronize ederek, CSV yükleyerek veya manuel ekleyerek kişileri içe aktarın. Her şeyi tek bir yerde düzenli tutun."
+    },
+    "step3": {
+      "title": "Listeler Oluşturun",
+      "body":  "Hedefli mesajlaşma için kişilerinizi Listelere gruplayın. Bir kampanya her zaman bir listeyi hedefler — göndermeden önce kişileri düzenleyin."
+    },
+    "step4": {
+      "title": "Kampanya Başlatın",
+      "body":  "Bir kampanya oluşturun, liste ve WhatsApp oturumu seçin, mesajınızı yazın (veya medya ekleyin) ve başlatın. Mesajlar güvenli kalmak için rastgele gecikmelerle gönderilir."
+    },
+    "step5": {
+      "title": "Durum Zamanlayın",
+      "body":  "WhatsApp durumlarını anında veya yinelenen bir programda (günlük, haftalık veya özel aralıkta) paylaşın. Bir kez ayarlayın, her şeyi unutun."
+    }
   },
   "grammar": {
     "checkGrammar": "Dilbilgisi Kontrol",

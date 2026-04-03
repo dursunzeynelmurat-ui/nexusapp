@@ -1,9 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
 import { useAuthStore } from './stores/authStore'
+import { useTutorialStore } from './stores/tutorialStore'
 import { Sidebar }       from './components/Sidebar'
 import { ToastContainer } from './components/Toast'
+import { Tutorial }      from './components/Tutorial'
 import './utils/i18n'
 
 const Login    = lazy(() => import('./pages/Login'))
@@ -27,6 +29,18 @@ const queryClient = new QueryClient({
 
 function ProtectedLayout() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const user            = useAuthStore((s) => s.user)
+  const openTutorial    = useTutorialStore((s) => s.open)
+
+  useEffect(() => {
+    if (!user) return
+    const key = `nexus-tutorial-seen-${user.id}`
+    if (!localStorage.getItem(key)) {
+      localStorage.setItem(key, '1')
+      openTutorial()
+    }
+  }, [user, openTutorial])
+
   if (!isAuthenticated) return <Navigate to="/login" replace />
 
   return (
@@ -43,6 +57,7 @@ function ProtectedLayout() {
           <Outlet />
         </Suspense>
       </main>
+      <Tutorial />
     </div>
   )
 }
