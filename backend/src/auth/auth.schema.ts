@@ -2,8 +2,8 @@ import { z } from 'zod'
 
 export const registerSchema = z.object({
   email:    z.string().email('Invalid email address'),
-  // min 12 for security, max 128 to prevent bcrypt DoS (bcrypt silently truncates at 72 bytes)
-  password: z.string().min(12, 'Password must be at least 12 characters').max(128, 'Password must be at most 128 characters'),
+  // max 128 to prevent bcrypt DoS (bcrypt silently truncates at 72 bytes)
+  password: z.string().min(8, 'Password must be at least 8 characters').max(128, 'Password must be at most 128 characters'),
   name:     z.string().min(1, 'Name is required').max(100),
 })
 
