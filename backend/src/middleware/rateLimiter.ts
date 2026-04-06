@@ -8,8 +8,8 @@ import { redis } from '../whatsapp/session.registry'
 // is max × number_of_containers.
 function makeRedisStore(prefix: string) {
   return new RedisStore({
-    // ioredis sendCommand signature: (command, ...args) => Promise<unknown>
-    sendCommand: (...args: string[]) => (redis as unknown as { call: (...a: string[]) => Promise<unknown> }).call(...args),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    sendCommand: (...args: string[]) => (redis as any).call(...args),
     prefix: `rl:${prefix}:`,
   })
 }

@@ -1,6 +1,6 @@
 import { Server as SocketServer, type Socket } from 'socket.io'
 import { createAdapter } from '@socket.io/redis-adapter'
-import { createClient } from 'redis'
+import Redis from 'ioredis'
 import type { Server as HttpServer } from 'http'
 import jwt from 'jsonwebtoken'
 import { env } from '../utils/env'
@@ -39,9 +39,8 @@ export async function createSocketServer(httpServer: HttpServer): Promise<Socket
 
   // Redis adapter enables Socket.IO events to propagate across multiple API
   // server instances — required for horizontal scaling
-  const pubClient = createClient({ url: env.REDIS_URL })
-  const subClient = pubClient.duplicate()
-  await Promise.all([pubClient.connect(), subClient.connect()])
+  const pubClient = new Redis(env.REDIS_URL)
+  const subClient = new Redis(env.REDIS_URL)
   io.adapter(createAdapter(pubClient, subClient))
   logger.info('Socket.IO Redis adapter connected')
 

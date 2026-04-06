@@ -30,7 +30,7 @@ whatsappRouter.post('/init', validate(initSchema), async (req: AuthRequest, res,
 
   // Acquire per-user lock (NX = only set if not exists, EX = auto-expire after 15s)
   // Prevents duplicate sessions from concurrent requests racing through the findFirst check.
-  const acquired = await redis.set(lockKey, '1', 'NX', 'EX', 15)
+  const acquired = await redis.set(lockKey, '1', 'EX', 15, 'NX')
   if (!acquired) {
     res.status(429).json({ error: 'Session initialization already in progress, please wait' })
     return
