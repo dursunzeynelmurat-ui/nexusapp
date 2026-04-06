@@ -9,13 +9,12 @@ export interface AuthUser {
 }
 
 interface AuthState {
-  user:         AuthUser | null
-  accessToken:  string | null
-  refreshToken: string | null
+  user:            AuthUser | null
+  accessToken:     string | null
   isAuthenticated: boolean
 
-  setAuth:  (user: AuthUser, accessToken: string, refreshToken: string) => void
-  setToken: (accessToken: string, refreshToken: string) => void
+  setAuth:  (user: AuthUser, accessToken: string, _refreshToken?: string) => void
+  setToken: (accessToken: string) => void
   logout:   () => void
 }
 
@@ -24,33 +23,25 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user:            null,
       accessToken:     null,
-      refreshToken:    null,
       isAuthenticated: false,
 
-      setAuth: (user, accessToken, refreshToken) => {
-        localStorage.setItem('accessToken',  accessToken)
-        localStorage.setItem('refreshToken', refreshToken)
-        set({ user, accessToken, refreshToken, isAuthenticated: true })
+      setAuth: (user, accessToken) => {
+        set({ user, accessToken, isAuthenticated: true })
       },
 
-      setToken: (accessToken, refreshToken) => {
-        localStorage.setItem('accessToken',  accessToken)
-        localStorage.setItem('refreshToken', refreshToken)
-        set({ accessToken, refreshToken })
+      setToken: (accessToken) => {
+        set({ accessToken })
       },
 
       logout: () => {
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
-        set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false })
+        set({ user: null, accessToken: null, isAuthenticated: false })
       },
     }),
     {
-      name:    'nexus-auth',
+      name: 'nexus-auth',
       partialize: (state) => ({
-        user:         state.user,
-        accessToken:  state.accessToken,
-        refreshToken: state.refreshToken,
+        user:            state.user,
+        accessToken:     state.accessToken,
         isAuthenticated: state.isAuthenticated,
       }),
     }
