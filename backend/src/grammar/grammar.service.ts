@@ -134,6 +134,8 @@ async function checkEnglish(text: string): Promise<GrammarResult> {
   const errors:      GrammarError[] = []
   const styleIssues: StyleIssue[]   = []
 
+  if (!spell) return { errors, styleIssues }
+
   // Tokenize words (preserving offsets)
   const wordRegex = /\b[a-zA-Z']+\b/g
   let match: RegExpExecArray | null

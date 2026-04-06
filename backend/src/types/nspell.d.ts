@@ -3,6 +3,11 @@ declare module 'nspell' {
     correct(word: string): boolean
     suggest(word: string): string[]
   }
+  interface DictData {
+    aff: Buffer | string
+    dic: Buffer | string
+  }
+  function nspell(dict: DictData): NSpell
   function nspell(aff: Buffer | string, dic: Buffer | string): NSpell
   export = nspell
 }
