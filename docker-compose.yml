@@ -1,0 +1,75 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     nexus
+      POSTGRES_PASSWORD: nexus_password
+      POSTGRES_DB:       nexus_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:     ["CMD-SHELL", "pg_isready -U nexus"]
+      interval: 10s
+      timeout:  5s
+      retries:  5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test:     ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout:  5s
+      retries:  5
+
+  backend:
+    build:
+      context:    ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL:             postgresql://nexus:nexus_password@postgres:5432/nexus_db
+      REDIS_URL:                redis://redis:6379
+      JWT_SECRET:               ${JWT_SECRET:-change_me_jwt_secret_at_least_64_chars_long_xxxxxxxx}
+      JWT_REFRESH_SECRET:       ${JWT_REFRESH_SECRET:-change_me_refresh_secret_at_least_64_chars_long_xxx}
+      JWT_ACCESS_EXPIRES_IN:    15m
+      JWT_REFRESH_EXPIRES_IN:   7d
+      SESSION_ENCRYPTION_KEY:   ${SESSION_ENCRYPTION_KEY:-0000000000000000000000000000000000000000000000000000000000000000}
+      STORAGE_PROVIDER:         local
+      LOCAL_UPLOAD_DIR:         /app/uploads
+      CORS_ORIGIN:              ${CORS_ORIGIN:-http://localhost:5173,http://localhost}
+      NODE_ENV:                 development
+      PORT:                     3000
+    volumes:
+      - sessions_data:/app/sessions
+      - uploads_data:/app/uploads
+      - backend_logs:/app/logs
+    ports:
+      - "3000:3000"
+
+  frontend:
+    build:
+      context:    ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+
+volumes:
+  postgres_data:
+  redis_data:
+  sessions_data:
+  uploads_data:
+  backend_logs:

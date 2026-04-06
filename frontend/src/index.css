@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-display: 'Syne', sans-serif;
+    --font-body:    'DM Sans', sans-serif;
+    --font-arabic:  'Cairo', sans-serif;
+    --font-mono:    'JetBrains Mono', monospace;
+  }
+
+  html {
+    font-family: var(--font-body);
+  }
+
+  html[lang="ar"] {
+    font-family: var(--font-arabic);
+    direction: rtl;
+  }
+
+  body {
+    @apply bg-primary text-text-primary antialiased;
+    font-family: var(--font-body);
+  }
+
+  * {
+    @apply box-border;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-secondary;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-text-muted/50;
+  }
+
+  /* Remove autofill background */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0px 1000px #111118 inset;
+    -webkit-text-fill-color: #E8E8F0;
+    transition: background-color 5000s ease-in-out 0s;
+  }
+}
+
+@layer components {
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+}
