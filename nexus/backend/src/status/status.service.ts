@@ -1,6 +1,7 @@
 import { prisma } from '../prisma/client'
 import { statusQueue } from './status.queue'
 import { logger } from '../utils/logger'
+import { AppError } from '../middleware/errorHandler'
 
 export interface CreatePostInput {
   content:   string
@@ -38,20 +39,24 @@ export async function getPosts(userId: string) {
 }
 
 export async function updatePost(id: string, userId: string, input: Partial<CreatePostInput>) {
-  const post = await prisma.statusPost.findFirst({ where: { id, userId } })
-  if (!post) throw new Error('Post not found')
-  return prisma.statusPost.update({ where: { id }, data: input })
+  // Atomic: ownership check + update in one query via compound unique constraint
+  const updated = await prisma.statusPost.updateMany({
+    where: { id, userId },
+    data:  input,
+  })
+  if (updated.count === 0) throw new AppError(404, 'Post not found')
+  return prisma.statusPost.findUniqueOrThrow({ where: { id } })
 }
 
 export async function deletePost(id: string, userId: string): Promise<void> {
-  const post = await prisma.statusPost.findFirst({ where: { id, userId } })
-  if (!post) throw new Error('Post not found')
-  await prisma.statusPost.delete({ where: { id } })
+  // Atomic: ownership check + delete in one query — no TOCTOU window
+  const deleted = await prisma.statusPost.deleteMany({ where: { id, userId } })
+  if (deleted.count === 0) throw new AppError(404, 'Post not found')
 }
 
 export async function createSchedule(userId: string, input: CreateScheduleInput) {
   const post = await prisma.statusPost.findFirst({ where: { id: input.postId, userId } })
-  if (!post) throw new Error('Post not found')
+  if (!post) throw new AppError(404, 'Post not found')
 
   const schedule = await prisma.statusSchedule.create({
     data: {
@@ -82,23 +87,19 @@ export async function getSchedules(userId: string) {
 }
 
 export async function toggleSchedule(id: string, userId: string, isActive: boolean) {
-  const schedule = await prisma.statusSchedule.findFirst({
-    where:   { id },
-    include: { post: true },
-  })
-  if (!schedule || schedule.post.userId !== userId) throw new Error('Schedule not found')
-
-  return prisma.statusSchedule.update({
-    where: { id },
+  // Atomic: ownership via post.userId embedded in WHERE — no separate fetch
+  const updated = await prisma.statusSchedule.updateMany({
+    where: { id, post: { userId } },
     data:  { isActive },
   })
+  if (updated.count === 0) throw new AppError(404, 'Schedule not found')
+  return prisma.statusSchedule.findUniqueOrThrow({ where: { id } })
 }
 
 export async function deleteSchedule(id: string, userId: string): Promise<void> {
-  const schedule = await prisma.statusSchedule.findFirst({
-    where:   { id },
-    include: { post: true },
+  // Atomic: ownership via post.userId embedded in WHERE — no TOCTOU window
+  const deleted = await prisma.statusSchedule.deleteMany({
+    where: { id, post: { userId } },
   })
-  if (!schedule || schedule.post.userId !== userId) throw new Error('Schedule not found')
-  await prisma.statusSchedule.delete({ where: { id } })
+  if (deleted.count === 0) throw new AppError(404, 'Schedule not found')
 }

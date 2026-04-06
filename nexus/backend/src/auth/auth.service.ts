@@ -1,9 +1,11 @@
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { v4 as uuidv4 } from 'uuid'
-import { prisma } from '../prisma/client'
+import { prisma, workerPrisma } from '../prisma/client'
 import { env } from '../utils/env'
 import { logger } from '../utils/logger'
+import { redis } from '../whatsapp/session.registry'
+import { AppError } from '../middleware/errorHandler'
 import type { RegisterInput, LoginInput } from './auth.schema'
 
 const BCRYPT_ROUNDS = 12
@@ -41,8 +43,12 @@ function signRefresh(tokenId: string, userId: string): string {
 }
 
 function refreshExpiresAt(): Date {
-  const ms = env.JWT_REFRESH_EXPIRES_IN === '7d' ? 7 * 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000
-  return new Date(Date.now() + ms)
+  const raw = env.JWT_REFRESH_EXPIRES_IN  // e.g. '7d', '30d', '24h'
+  const match = raw.match(/^(\d+)([smhd])$/)
+  if (!match) throw new Error(`Invalid JWT_REFRESH_EXPIRES_IN format: ${raw}`)
+  const amount = parseInt(match[1], 10)
+  const multipliers: Record<string, number> = { s: 1000, m: 60_000, h: 3_600_000, d: 86_400_000 }
+  return new Date(Date.now() + amount * multipliers[match[2]])
 }
 
 async function createTokenPair(userId: string, role: string): Promise<TokenPair> {
@@ -66,7 +72,7 @@ async function createTokenPair(userId: string, role: string): Promise<TokenPair>
 
 export async function register(input: RegisterInput): Promise<{ user: AuthUser; tokens: TokenPair }> {
   const existing = await prisma.user.findUnique({ where: { email: input.email } })
-  if (existing) throw new Error('Email already in use')
+  if (existing) throw new AppError(409, 'Email already in use')
 
   const passwordHash = await hashPassword(input.password)
   const user = await prisma.user.create({
@@ -84,10 +90,10 @@ export async function register(input: RegisterInput): Promise<{ user: AuthUser; 
 
 export async function login(input: LoginInput): Promise<{ user: AuthUser; tokens: TokenPair }> {
   const user = await prisma.user.findUnique({ where: { email: input.email } })
-  if (!user) throw new Error('Invalid credentials')
+  if (!user) throw new AppError(401, 'Invalid credentials')
 
   const valid = await comparePassword(input.password, user.passwordHash)
-  if (!valid) throw new Error('Invalid credentials')
+  if (!valid) throw new AppError(401, 'Invalid credentials')
 
   const tokens = await createTokenPair(user.id, user.role)
   logger.info('User logged in', { userId: user.id })
@@ -103,7 +109,7 @@ export async function refreshTokens(rawToken: string): Promise<TokenPair> {
   try {
     payload = jwt.verify(rawToken, env.JWT_REFRESH_SECRET) as jwt.JwtPayload
   } catch {
-    throw new Error('Invalid or expired refresh token')
+    throw new AppError(401, 'Invalid or expired refresh token')
   }
 
   const stored = await prisma.refreshToken.findUnique({
@@ -111,7 +117,7 @@ export async function refreshTokens(rawToken: string): Promise<TokenPair> {
     include: { user: true },
   })
   if (!stored || stored.expiresAt < new Date()) {
-    throw new Error('Refresh token revoked or expired')
+    throw new AppError(401, 'Refresh token revoked or expired')
   }
 
   // Rotate: delete old, create new
@@ -130,36 +136,16 @@ export async function getUserById(id: string): Promise<AuthUser | null> {
 }
 
 export async function deleteAccount(id: string): Promise<void> {
-  // Cascade: delete refresh tokens, whatsapp sessions, contacts, lists, campaigns, status posts
-  await prisma.refreshToken.deleteMany({ where: { userId: id } })
-  await prisma.whatsAppSession.deleteMany({ where: { userId: id } })
+  // Blacklist the userId so any live JWT for this account is rejected immediately,
+  // without waiting for the 15-minute access token expiry window.
+  // TTL matches JWT_ACCESS_EXPIRES_IN (15 minutes) — after that the token is
+  // expired anyway and the blacklist key is no longer needed.
+  const accessTtlSeconds = 15 * 60
+  await redis.set(`user:blacklist:${id}`, '1', 'EX', accessTtlSeconds)
 
-  // Campaign contacts via campaigns
-  const campaigns = await prisma.campaign.findMany({ where: { userId: id }, select: { id: true } })
-  const campaignIds = campaigns.map((c) => c.id)
-  if (campaignIds.length) {
-    await prisma.campaignContact.deleteMany({ where: { campaignId: { in: campaignIds } } })
-  }
-  await prisma.campaign.deleteMany({ where: { userId: id } })
-
-  // List contacts via lists
-  const lists = await prisma.list.findMany({ where: { userId: id }, select: { id: true } })
-  const listIds = lists.map((l) => l.id)
-  if (listIds.length) {
-    await prisma.listContact.deleteMany({ where: { listId: { in: listIds } } })
-  }
-  await prisma.list.deleteMany({ where: { userId: id } })
-
-  await prisma.contact.deleteMany({ where: { userId: id } })
-
-  // Status schedules via status posts
-  const posts = await prisma.statusPost.findMany({ where: { userId: id }, select: { id: true } })
-  const postIds = posts.map((p) => p.id)
-  if (postIds.length) {
-    await prisma.statusSchedule.deleteMany({ where: { postId: { in: postIds } } })
-  }
-  await prisma.statusPost.deleteMany({ where: { userId: id } })
-
-  await prisma.user.delete({ where: { id } })
+  // Single delete — Postgres CASCADE handles all child rows automatically.
+  // Uses workerPrisma (nexus_worker role, BYPASSRLS) because this operation
+  // crosses all user-owned tables and must not be blocked by RLS policies.
+  await workerPrisma.user.delete({ where: { id } })
   logger.info('Account deleted', { userId: id })
 }

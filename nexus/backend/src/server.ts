@@ -16,8 +16,8 @@ async function bootstrap(): Promise<void> {
   // Create HTTP server
   const httpServer = http.createServer(app)
 
-  // Initialize Socket.IO
-  const io = createSocketServer(httpServer)
+  // Initialize Socket.IO with Redis adapter for horizontal scaling
+  const io = await createSocketServer(httpServer)
   setSocketServer(io)
 
   // Restore any sessions that were active before last shutdown

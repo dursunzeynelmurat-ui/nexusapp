@@ -22,19 +22,6 @@ export function errorHandler(
     return
   }
 
-  // Known user-facing errors (service layer throws plain Error)
-  const knownMessages = [
-    'Email already in use',
-    'Invalid credentials',
-    'Invalid or expired refresh token',
-    'Refresh token revoked or expired',
-    'User not found',
-  ]
-  if (knownMessages.includes(err.message)) {
-    res.status(400).json({ error: err.message })
-    return
-  }
-
   logger.error('Unhandled error', {
     message: err.message,
     stack:   err.stack,

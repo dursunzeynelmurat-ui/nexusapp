@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { requireAuth, type AuthRequest } from '../auth/auth.middleware'
+import { rlsMiddleware } from '../middleware/rls'
 import { validate } from '../middleware/validate'
 import {
   createPost, getPosts, updatePost, deletePost,
@@ -9,6 +10,7 @@ import {
 
 export const statusRouter = Router()
 statusRouter.use(requireAuth)
+statusRouter.use(rlsMiddleware)
 
 const postSchema = z.object({
   content:   z.string().min(1).max(700),
@@ -21,8 +23,12 @@ const scheduleSchema = z.object({
   sessionId:        z.string().min(1),
   frequency:        z.enum(['ONCE', 'DAILY', 'WEEKLY', 'CUSTOM_INTERVAL']),
   scheduledAt:      z.string().datetime(),
-  customIntervalMs: z.number().int().positive().optional(),
-})
+  // Minimum 1 hour (3_600_000 ms) to prevent spammy schedules
+  customIntervalMs: z.number().int().min(3_600_000, 'Minimum interval is 1 hour').optional(),
+}).refine(
+  (d) => d.frequency !== 'CUSTOM_INTERVAL' || d.customIntervalMs !== undefined,
+  { message: 'customIntervalMs is required for CUSTOM_INTERVAL frequency', path: ['customIntervalMs'] }
+)
 
 // Posts
 statusRouter.get('/posts', async (req: AuthRequest, res, next) => {

@@ -1,4 +1,6 @@
 import { Server as SocketServer, type Socket } from 'socket.io'
+import { createAdapter } from '@socket.io/redis-adapter'
+import { createClient } from 'redis'
 import type { Server as HttpServer } from 'http'
 import jwt from 'jsonwebtoken'
 import { env } from '../utils/env'
@@ -25,7 +27,7 @@ function authMiddleware(socket: Socket, next: (err?: Error) => void): void {
   }
 }
 
-export function createSocketServer(httpServer: HttpServer): SocketServer {
+export async function createSocketServer(httpServer: HttpServer): Promise<SocketServer> {
   io = new SocketServer(httpServer, {
     cors: {
       origin:      env.CORS_ORIGIN.split(','),
@@ -34,6 +36,14 @@ export function createSocketServer(httpServer: HttpServer): SocketServer {
     },
     transports: ['websocket', 'polling'],
   })
+
+  // Redis adapter enables Socket.IO events to propagate across multiple API
+  // server instances — required for horizontal scaling
+  const pubClient = createClient({ url: env.REDIS_URL })
+  const subClient = pubClient.duplicate()
+  await Promise.all([pubClient.connect(), subClient.connect()])
+  io.adapter(createAdapter(pubClient, subClient))
+  logger.info('Socket.IO Redis adapter connected')
 
   // ── /whatsapp namespace ────────────────────────────────────────────────────
   const whatsappNs = io.of('/whatsapp')
@@ -55,7 +65,15 @@ export function createSocketServer(httpServer: HttpServer): SocketServer {
     const userId = socket.data.userId as string
     logger.info('Socket connected to /campaigns', { userId, socketId: socket.id })
 
-    socket.on('join', (campaignId: string) => {
+    // Verify ownership before joining room — prevents users from
+    // receiving another user's campaign progress events
+    socket.on('join', async (campaignId: string) => {
+      const { prisma } = await import('../prisma/client')
+      const campaign = await prisma.campaign.findFirst({
+        where:  { id: campaignId, userId: socket.data.userId },
+        select: { id: true },
+      })
+      if (!campaign) return  // silently reject unauthorized join
       socket.join(`campaign:${campaignId}`)
     })
 

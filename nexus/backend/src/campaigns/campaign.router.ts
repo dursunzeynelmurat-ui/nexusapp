@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { requireAuth, type AuthRequest } from '../auth/auth.middleware'
+import { rlsMiddleware } from '../middleware/rls'
 import { validate } from '../middleware/validate'
 import { campaignStartLimiter } from '../middleware/rateLimiter'
 import {
@@ -15,6 +16,7 @@ import {
 
 export const campaignRouter = Router()
 campaignRouter.use(requireAuth)
+campaignRouter.use(rlsMiddleware)
 
 const createSchema = z.object({
   listId:    z.string().min(1),

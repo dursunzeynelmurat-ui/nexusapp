@@ -1,6 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
+import cookieParser from 'cookie-parser'
 import path from 'path'
 import { env } from './utils/env'
 import { apiLimiter, authLimiter } from './middleware/rateLimiter'
@@ -26,9 +27,10 @@ app.use(cors({
   credentials: true,
 }))
 
-// ── Body parsing ───────────────────────────────────────────────────────────
+// ── Body parsing + cookies ────────────────────────────────────────────────
 app.use(express.json({ limit: '2mb' }))
 app.use(express.urlencoded({ extended: true, limit: '2mb' }))
+app.use(cookieParser())  // Required for httpOnly refresh token cookie
 
 // ── Static uploads (local storage) ────────────────────────────────────────
 app.use('/uploads', express.static(path.resolve(env.LOCAL_UPLOAD_DIR)))

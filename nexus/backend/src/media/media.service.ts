@@ -1,9 +1,12 @@
 import fs from 'fs'
 import path from 'path'
+import { randomBytes } from 'crypto'
 import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3'
 import { Upload } from '@aws-sdk/lib-storage'
 import { env } from '../utils/env'
 import { logger } from '../utils/logger'
+import { workerPrisma } from '../prisma/client'
+import { AppError } from '../middleware/errorHandler'
 
 export interface StoredFile {
   key:      string
@@ -100,15 +103,30 @@ function getProvider(): IStorageProvider {
 export async function storeFile(
   localPath: string,
   originalName: string,
-  mimeType: string
+  mimeType: string,
+  userId: string,
 ): Promise<StoredFile> {
   const ext = path.extname(originalName) || ''
-  const key = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`
-  return getProvider().store(localPath, key, mimeType)
+  // Use CSPRNG — Date.now() + Math.random() was predictable and guessable
+  const key = `${randomBytes(16).toString('hex')}${ext}`
+  const stored = await getProvider().store(localPath, key, mimeType)
+
+  // Record ownership so delete can verify the requesting user owns this file
+  await workerPrisma.mediaFile.create({
+    data: { id: randomBytes(8).toString('hex'), userId, key: stored.key, url: stored.url, mimeType, size: stored.size },
+  })
+
+  return stored
 }
 
-export async function deleteFile(key: string): Promise<void> {
-  return getProvider().delete(key)
+export async function deleteFile(key: string, userId: string): Promise<void> {
+  // Verify ownership before deleting — prevents any user from deleting anyone's file
+  const record = await workerPrisma.mediaFile.findUnique({ where: { key } })
+  if (!record) throw new AppError(404, 'File not found')
+  if (record.userId !== userId) throw new AppError(403, 'Forbidden')
+
+  await getProvider().delete(key)
+  await workerPrisma.mediaFile.delete({ where: { key } })
 }
 
 export function getFileUrl(key: string): string {

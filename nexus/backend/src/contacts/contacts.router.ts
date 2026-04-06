@@ -1,11 +1,13 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { requireAuth, type AuthRequest } from '../auth/auth.middleware'
+import { rlsMiddleware } from '../middleware/rls'
 import { validate } from '../middleware/validate'
 import { prisma } from '../prisma/client'
 
 export const contactsRouter = Router()
 contactsRouter.use(requireAuth)
+contactsRouter.use(rlsMiddleware)
 
 const createSchema = z.object({
   phone: z.string().min(7).max(20),

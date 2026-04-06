@@ -1,11 +1,13 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { requireAuth, type AuthRequest } from '../auth/auth.middleware'
+import { rlsMiddleware } from '../middleware/rls'
 import { validate } from '../middleware/validate'
 import { prisma } from '../prisma/client'
 
 export const listsRouter = Router()
 listsRouter.use(requireAuth)
+listsRouter.use(rlsMiddleware)
 
 const createSchema = z.object({
   name:        z.string().min(1).max(200),
@@ -70,6 +72,16 @@ listsRouter.post('/:id/contacts', async (req: AuthRequest, res, next) => {
     }
     const list = await prisma.list.findFirst({ where: { id: req.params.id, userId: req.user!.id } })
     if (!list) { res.status(404).json({ error: 'List not found' }); return }
+
+    // Verify every contactId belongs to the requesting user before inserting.
+    // Without this check, a user could add another user's contacts into their list.
+    const ownedCount = await prisma.contact.count({
+      where: { id: { in: contactIds }, userId: req.user!.id },
+    })
+    if (ownedCount !== contactIds.length) {
+      res.status(403).json({ error: 'One or more contacts do not belong to you' })
+      return
+    }
 
     await prisma.listContact.createMany({
       data:           contactIds.map((contactId) => ({ listId: req.params.id, contactId })),

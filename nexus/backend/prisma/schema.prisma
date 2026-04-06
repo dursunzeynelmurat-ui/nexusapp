@@ -22,6 +22,7 @@ model User {
   lists            List[]
   campaigns        Campaign[]
   statusPosts      StatusPost[]
+  mediaFiles       MediaFile[]
 
   @@map("users")
 }
@@ -51,6 +52,7 @@ model WhatsAppSession {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, status])       // session lookup by user + status filter
   @@map("whatsapp_sessions")
 }
 
@@ -119,6 +121,8 @@ model Campaign {
   list             List              @relation(fields: [listId], references: [id])
   campaignContacts CampaignContact[]
 
+  @@index([userId, status])       // list campaigns by user + status
+  @@index([status])               // admin/dashboard queries across all campaigns
   @@map("campaigns")
 }
 
@@ -134,6 +138,8 @@ model CampaignContact {
   contact  Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
 
   @@unique([campaignId, contactId])
+  @@index([campaignId, status])   // queue processor: fetch PENDING contacts per campaign
+  @@index([status])               // count pending/sent/failed across campaigns
   @@map("campaign_contacts")
 }
 
@@ -194,6 +200,21 @@ enum CampaignContactStatus {
   PENDING
   SENT
   FAILED
+}
+
+model MediaFile {
+  id        String   @id @default(cuid())
+  userId    String
+  key       String   @unique
+  url       String
+  mimeType  String
+  size      Int
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("media_files")
 }
 
 enum ScheduleFrequency {
